@@ -1,0 +1,11 @@
+{
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "clean": "npx prettier --write ."
+  },
+  "dependencies": {
+    "ws": "^8.13.0"
+  }
+}

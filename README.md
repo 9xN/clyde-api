@@ -1,4 +1,5 @@
 # clyde-api
+
 Interact with Discord's AI robot friend, Clyde!
 
 This Node.js program serves as a Discord bot client that connects to the Discord Gateway using WebSocket and interacts with the Discord API. It also includes an HTTP server that offers endpoints for managing messages in a specific Discord channel.
