@@ -1,4 +1,5 @@
-import { createServer } from "http";
+import { createServer, request as httpRequest } from "http";
+import { URL } from 'url';
 import { readFileSync } from "fs";
 import WebSocket from "ws";
 
@@ -15,6 +16,8 @@ let token = envVars.TOKEN;
 let channelId = envVars.CHANNELID;
 let clydeID = envVars.CLYDEID;
 let botID = envVars.BOTID;
+let xproperties = envVars.XPROPERTIES;
+let truecallerauth = envVars.TRUECALLERAUTH;
 let messages = [];
 let sequence = 0;
 let session_id = "";
@@ -26,9 +29,9 @@ const identifyPayload = {
   d: {
     token: token,
     properties: {
-      $os: "linux",
-      $browser: "github.com/9xN",
-      $device: "github.com/9xN",
+      os: "linux",
+      browser: "github.com/9xN",
+      device: "github.com/9xN",
     },
   },
 };
@@ -174,8 +177,7 @@ const server = createServer((req, res) => {
             headers: {
               Authorization: token,
               "Content-Type": "application/json",
-              "x-super-properties":
-                "eyJvcyI6IldpbmRvd3MiLCJicm93c2VyIjoiRGlzY29yZCBDbGllbnQiLCJyZWxlYXNlX2NoYW5uZWwiOiJjYW5hcnkiLCJjbGllbnRfdmVyc2lvbiI6IjEuMC43MyIsIm9zX3ZlcnNpb24iOiIxMC4wLjIyNjIxIiwib3NfYXJjaCI6Ing2NCIsInN5c3RlbV9sb2NhbGUiOiJlbi1VUyIsImJyb3dzZXJfdXNlcl9hZ2VudCI6Ik1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdPVzY0KSBBcHBsZVdlYktpdC81MzcuMzYgKEtIVE1MLCBsaWtlIEdlY2tvKSBkaXNjb3JkLzEuMC43MyBDaHJvbWUvMTA4LjAuNTM1OS4yMTUgRWxlY3Ryb24vMjIuMy4xMiBTYWZhcmkvNTM3LjM2IiwiYnJvd3Nlcl92ZXJzaW9uIjoiMjIuMy4xMiIsImNsaWVudF9idWlsZF9udW1iZXIiOjIxODUyMiwibmF0aXZlX2J1aWxkX251bWJlciI6MzU0OTQsImNsaWVudF9ldmVudF9zb3VyY2UiOm51bGx9",
+              "x-super-properties": xproperties,
             },
             body: JSON.stringify({ content: "@Clyde " + message }),
           }
@@ -234,6 +236,71 @@ const server = createServer((req, res) => {
           .writeHead(400, { "Content-Type": "application/json" })
           .end(JSON.stringify({ error: "Invalid request data." }));
       }
+    });
+  } else if (method === "POST" && url === "/os1ntgpt") {
+    let requestBody = '';
+
+    req.on('data', chunk => {
+        requestBody += chunk;
+    });
+
+    req.on('end', async () => {
+        try {
+            const parsedRequestBody = JSON.parse(requestBody);
+            const phoneNumber = parsedRequestBody.number;
+            const country_code = parsedRequestBody.country_code;
+
+            const squrl = `https://asia-south1-truecaller-web.cloudfunctions.net/api/noneu/search/v1?q=${phoneNumber}&countryCode=${country_code}`;
+            const numheaders = {
+                "Authorization": truecallerauth
+            };
+
+            const urlObj = new URL(squrl);
+            const requestOptions = {
+                hostname: urlObj.hostname,
+                path: urlObj.pathname + urlObj.search,
+                headers: numheaders
+            };
+
+            const req2 = httpRequest(requestOptions, response2 => {
+                let responseData = '';
+
+                response2.on('data', chunk => {
+                    responseData += chunk;
+                });
+
+                response2.on('end', () => {
+                  if (response2.statusCode === 200) {
+                      res.writeHead(200, { 'Content-Type': 'application/json' });
+                      res.end(responseData);
+                  } else if (response2.statusCode === 429 || responseData.includes('too many requests')) {
+                      res.writeHead(429, { 'Content-Type': 'text/plain' });
+                      res.end('Too Many Requests\n');
+                  } else if (response2.statusCode === 400) {
+                      res.writeHead(400, { 'Content-Type': 'text/plain' });
+                      res.end('Bad Request\n');
+                  } else if (response2.statusCode === 401) {
+                      res.writeHead(401, { 'Content-Type': 'text/plain' });
+                      res.end('Unauthorized\n');
+                  } else {
+                      res.writeHead(500, { 'Content-Type': 'text/plain' });
+                      res.end('Internal Server Error\n');
+                  }
+              });
+          });
+
+            req2.on('error', error => {
+                console.error('An error occurred:', error);
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('An error occurred\n');
+            });
+
+            req2.end();
+        } catch (error) {
+            console.error('An error occurred:', error);
+            res.writeHead(400, { 'Content-Type': 'text/plain' });
+            res.end('Invalid JSON format\n');
+        }
     });
   } else {
     res

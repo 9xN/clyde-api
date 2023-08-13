@@ -28,6 +28,8 @@ This Node.js program serves as a Discord bot client that connects to the Discord
    CHANNELID=<Target Discord Channel ID>
    CLYDEID=<Clyde User ID>
    BOTID=<Your Bot's ID>
+   XPROPERTIES=<Your Super Properties>
+   TRUECALLERAUTH=<Your Truecaller Authorization Token>
    ```
 
    Replace the placeholders with your actual values.
@@ -67,6 +69,17 @@ The HTTP server provides the following endpoints for managing messages:
     "id": "Message ID to remove"
   }
   ```
+
+- `POST /os1ntgpt`: Send a JSON payload in the request body with the following structure:
+
+  ```json
+  {
+    "number": "Phone number",
+    "country_code": "Country code"
+  }
+  ```
+
+  This endpoint fetches information from the Truecaller API and returns the response based on the status code and content received.
 
 ## Important Notes
 
